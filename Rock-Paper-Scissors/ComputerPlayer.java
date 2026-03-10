@@ -1,6 +1,13 @@
+import java.util.Random;
+
 public class ComputerPlayer {
+    private final Random random;
+
+    public ComputerPlayer() {
+        this.random = new Random();
+    }
+    
     public int getMove() {
-        // Hard-coded: Computer always chooses Scissors (3) for testing
-        return 3; 
+        return random.nextInt(3) + 1;
     }
 }
