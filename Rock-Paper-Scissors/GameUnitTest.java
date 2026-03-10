@@ -46,8 +46,67 @@ public class GameUnitTest {
             System.exit(1); // Exit with error code
         }
         
-        // Note: If code reaches here with no output, the test passed.
+        // --- TEST 4: HumanPlayer Valid Input ---
+        // Simulate user typing "2" (Paper) into System.in
+        java.io.InputStream originalIn = System.in;
+        try {
+            String simulatedInput = "2\n";
+            System.setIn(new java.io.ByteArrayInputStream(simulatedInput.getBytes()));
 
+            HumanPlayer testHuman = new HumanPlayer();
+            int move = testHuman.getMove(1);
+
+            if (move != 2) {
+                System.err.println("ERROR: HumanPlayer returned " + move + " but expected 2 (Paper).");
+                testFailed = true;
+            }
+        } finally {
+            System.setIn(originalIn); // Always restore System.in
+        }
+
+        // --- TEST 5: HumanPlayer Invalid Then Valid Input ---
+        // Simulate user typing "9" (invalid), then "1" (Rock)
+        originalIn = System.in;
+        try {
+            String simulatedInput = "9\n1\n";
+            System.setIn(new java.io.ByteArrayInputStream(simulatedInput.getBytes()));
+
+            HumanPlayer testHuman = new HumanPlayer();
+            int move = testHuman.getMove(1);
+
+            if (move != 1) {
+                System.err.println("ERROR: HumanPlayer should have re-prompted and returned 1 (Rock), got " + move);
+                testFailed = true;
+            }
+        } finally {
+            System.setIn(originalIn);
+        }
+
+        // --- TEST 6: HumanPlayer Non-Numeric Then Valid Input ---
+        // Simulate user typing "abc" (bad), then "3" (Scissors)
+        originalIn = System.in;
+        try {
+            String simulatedInput = "abc\n3\n";
+            System.setIn(new java.io.ByteArrayInputStream(simulatedInput.getBytes()));
+
+            HumanPlayer testHuman = new HumanPlayer();
+            int move = testHuman.getMove(1);
+
+            if (move != 3) {
+                System.err.println("ERROR: HumanPlayer should have handled bad input and returned 3 (Scissors), got " + move);
+                testFailed = true;
+            }
+        } finally {
+            System.setIn(originalIn);
+        }
+
+         // Final status report
+        if (testFailed) {
+            System.err.println("\nUNIT TEST STATUS: FAILED");
+            System.exit(1);
+        }
+
+        // Note: If code reaches here with no output, the test passed.
 
         // Add test for the other classes!
     }
