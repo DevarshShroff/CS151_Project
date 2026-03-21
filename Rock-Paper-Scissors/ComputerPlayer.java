@@ -11,3 +11,8 @@ public class ComputerPlayer {
         return random.nextInt(3) + 1;
     }
 }
+// This is to replaced by RandomComputerPlayer and MLComputerPlayer 
+// implementing the Player Interface  
+
+
+//Please Delete this file!

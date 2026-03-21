@@ -1,4 +1,6 @@
 public class GameLogic {
+    // Make a IRules Interface for this Class and Make 
+    // this as ClasicRules() implementing the IRules 
 
     public int determineWinner(int human, int computer) {
         // For testing purposes: 
