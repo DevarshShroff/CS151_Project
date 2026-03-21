@@ -1,5 +1,9 @@
 import java.util.Scanner;
 
+// Make it so that this Implements Player.java (making it consistent everywhere)
+// Have this as a consturcotr : HumanPlayer(playerName, scanner)
+
+
 public class HumanPlayer {
     private final Scanner scanner;
 

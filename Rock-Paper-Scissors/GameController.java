@@ -1,47 +1,54 @@
 public class GameController {
-    public static void main(String[] args) {
-        GameUnitTest.main(null);
+    private final Player p1;
+    private final Player p2;
+    private final IRules rules;
+    private final Scoreboard scoreboard;
 
-        // Initialize Components
-        HumanPlayer human = new HumanPlayer();
-        ComputerPlayer computer = new ComputerPlayer();
-        GameLogic DecisionMaker = new GameLogic();
+    // Dependencies are injected here!
+    public GameController(Player p1, Player p2, IRules rules) {
+        this.p1 = p1;
+        this.p2 = p2;
+        this.rules = rules;
+        this.scoreboard = new Scoreboard();
+    }
 
-        // Scoreboard variables
-        int humanWins = 0;
-        int computerWins = 0;
-        int draws = 0;
-        final int totalRounds = 20;
-
+    public void playGame(int totalRounds) {
         for (int i = 1; i <= totalRounds; i++) {
-            System.out.println("Round " + i + " - Choose (1=rock, 2=paper, 3=scissors): " );
-            int humanMove = human.getMove(i);
-            int computerMove = computer.getMove();
+            System.out.println("Round " + i + " --------------------");
+            
+            // Get Moves (The HumanPlayer class itself should handle the "1=rock..." and get input (as ENUM Moves))
+            Move p1Move = p1.getMove();
+            Move p2Move = p2.getMove();
 
-            int result = DecisionMaker.determineWinner(humanMove, computerMove);
+            // Decide Winner
+            int result = rules.decideWinner(p1Move, p2Move);
 
-            // Print choices
-            System.out.print("You chose " + DecisionMaker.getChoiceName(humanMove) + ". ");
-            System.out.print("The computer chose " + DecisionMaker.getChoiceName(computerMove) + ". ");
+            // Update Scoreboard
+            scoreboard.recordResult(result);
 
-            // Update Scoreboard and Print Result
+            // Print Choices
+            System.out.print(p1.getName() + " chose " + p1Move + ". ");
+            System.out.print(p2.getName() + " chose " + p2Move + ". \n");
+
+            // Print Round Result (Assuming 0=Draw, 1=P1 Win, 2=P2 Win)
             if (result == 0) {
-                draws++;
                 System.out.println("Draw!");
-            } else if (result == 1) {
-                humanWins++;
-                System.out.println("Human Wins!");
+            } else if (result == 1) { 
+                System.out.println(p1.getName() + " Wins!");
             } else {
-                computerWins++;
-                System.out.println("Computer Wins!");
+                System.out.println(p2.getName() + " Wins!");
             }
 
-            // Print current score
-            System.out.printf("Score: Human:%d Computer:%d Draws=%d%n%n", 
-                               humanWins, computerWins, draws);
+            // Feed history to players (for Machine Learning engine)
+            p1.updateHistory(p2Move);
+            p2.updateHistory(p1Move);
+
+            // Print Current Score
+            System.out.println("Current " + scoreboard.formatScore() + "\n");
         }
 
+        // End of Game
         System.out.println("------- Game Over --------");
-        System.out.println("Final Score - You: " + humanWins + " | Computer: " + computerWins);
+        System.out.println("Final Standings - " + scoreboard.formatScore());
     }
 }
