@@ -51,9 +51,10 @@ public class GameController {
         System.out.println("------- Game Over --------");
         System.out.println("Final Standings - " + scoreboard.formatScore());
 
-        // Save ML data if p2 is an MLComputerPlayer
-        if (p2 instanceof MLComputerPlayer) {
-            ((MLComputerPlayer) p2).saveData();
-        }
+        p2.saveData();
+    }
+
+    public Scoreboard getScoreboard() {
+        return scoreboard;
     }
 }
