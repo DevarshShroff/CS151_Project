@@ -40,8 +40,8 @@ public class GameController {
             }
 
             // Feed history to players (for Machine Learning engine)
-            p1.updateHistory(p2Move);
-            p2.updateHistory(p1Move);
+            p1.updateHistory(p1Move, p2Move);
+            p2.updateHistory(p2Move, p1Move);
 
             // Print Current Score
             System.out.println("Current " + scoreboard.formatScore() + "\n");
