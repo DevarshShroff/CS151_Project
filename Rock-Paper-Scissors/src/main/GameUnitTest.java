@@ -214,6 +214,81 @@ public class GameUnitTest {
             }
         }
 
+        // --- TEST 18: MLComputerPlayer returns valid move with no history ---
+        {
+            MLComputerPlayer ml = new MLComputerPlayer();
+            Move m = ml.getMove();
+            if (m != Move.ROCK && m != Move.PAPER && m != Move.SCISSORS) {
+                System.err.println("TEST 18 FAILED: MLComputerPlayer returned invalid move with no history.");
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 19: MLComputerPlayer returns valid move with insufficient history (< N-1) ---
+        {
+            MLComputerPlayer ml = new MLComputerPlayer();
+            ml.updateHistory(Move.ROCK);
+            ml.updateHistory(Move.ROCK);
+            ml.updateHistory(Move.ROCK);
+            // Only 3 moves fed; need N-1=4 before prediction kicks in
+            Move m = ml.getMove();
+            if (m != Move.ROCK && m != Move.PAPER && m != Move.SCISSORS) {
+                System.err.println("TEST 19 FAILED: MLComputerPlayer returned invalid move with insufficient history.");
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 20: MLComputerPlayer learns always-ROCK pattern and counters with PAPER ---
+        {
+            MLComputerPlayer ml = new MLComputerPlayer();
+            // Feed N full windows of ROCK so the frequency table is populated.
+            // updateHistory() needs N moves to record a sequence, and getMove()
+            // needs N-1 in the deque. We feed enough to build strong signal.
+            for (int i = 0; i < 20; i++) {
+                ml.updateHistory(Move.ROCK);
+            }
+            // Now the deque has the last N=5 moves (all ROCK), and the prefix
+            // ROCK,ROCK,ROCK,ROCK → ROCK is heavily recorded.
+            Move counter = ml.getMove();
+            if (counter != Move.PAPER) {
+                System.err.println("TEST 20 FAILED: Expected PAPER to counter always-ROCK pattern, got " + counter);
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 21: MLComputerPlayer learns always-SCISSORS pattern and counters with ROCK ---
+        {
+            MLComputerPlayer ml = new MLComputerPlayer();
+            for (int i = 0; i < 20; i++) {
+            ml.updateHistory(Move.SCISSORS);
+            }
+            Move counter = ml.getMove();
+            if (counter != Move.ROCK) {
+                System.err.println("TEST 21 FAILED: Expected ROCK to counter always-SCISSORS pattern, got " + counter);
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 22: MLComputerPlayer learns alternating ROCK/PAPER pattern ---
+        {
+            MLComputerPlayer ml = new MLComputerPlayer();
+            Move[] pattern = {Move.ROCK, Move.PAPER, Move.ROCK, Move.PAPER, Move.ROCK,
+                            Move.PAPER, Move.ROCK, Move.PAPER, Move.ROCK, Move.PAPER,
+                            Move.ROCK, Move.PAPER, Move.ROCK, Move.PAPER, Move.ROCK,
+                            Move.PAPER, Move.ROCK, Move.PAPER, Move.ROCK};
+            // Feed all but the last move — the deque ends with ROCK,PAPER,ROCK,PAPER
+            for (Move m : pattern) {
+                ml.updateHistory(m);
+            }
+            // The prefix ROCK,PAPER,ROCK,PAPER strongly predicts PAPER next,
+            // so the ML engine should return SCISSORS to beat it.
+            Move counter = ml.getMove();
+            if (counter != Move.SCISSORS) {
+                System.err.println("TEST 22 FAILED: Expected SCISSORS to counter alternating pattern, got " + counter);
+                testFailed = true;
+            }
+        }
+
         // ================================================================
         // FINAL REPORT
         // ================================================================
