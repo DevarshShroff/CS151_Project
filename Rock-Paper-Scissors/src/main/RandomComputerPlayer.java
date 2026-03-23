@@ -11,6 +11,7 @@ public class RandomComputerPlayer implements Player {
             case 0: return Move.ROCK;
             case 1: return Move.PAPER;
             default: return Move.SCISSORS;
+        }
     }
     
     @Override 
