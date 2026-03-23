@@ -24,6 +24,11 @@ public class MLComputerPlayer implements Player {
             return randomMove();
         }
 
+        // INVARIANT: getMove() is always called BEFORE updateHistory() for the same round.
+        // Therefore, history.size() is at most N-1 here (the previous round's updateHistory
+        // trims the deque to N, but getMove() fires before the current round's updateHistory).
+        // buildKey() uses Math.min(N-1, list.size()) defensively, but in normal game flow
+        // history will have exactly N-1 entries when this prediction runs.
         // Build key from last N-1 moves (the prefix before the human's next move)
         String prefix = buildKey(history);
 
@@ -93,6 +98,11 @@ public class MLComputerPlayer implements Player {
             counts[0]++;
         }
 
+        // NOTE: We save after every round rather than only at game end.
+        // This ensures data is never lost if the JVM exits unexpectedly (e.g. Ctrl+C),
+        // at the cost of one small file write per round. For 20-round games this is
+        // negligible. A future improvement could add a shutdown hook or a game-end
+        // callback on the Player interface to save only once.
         saveFrequencies();
     }
 
