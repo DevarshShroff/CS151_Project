@@ -5,11 +5,11 @@ public class GameController {
     private final Scoreboard scoreboard;
 
     // Dependencies are injected here!
-    public GameController(Player p1, Player p2, IRules rules) {
+    public GameController(Player p1, Player p2, IRules rules, Scoreboard scoreboard) {
         this.p1 = p1;
         this.p2 = p2;
         this.rules = rules;
-        this.scoreboard = new Scoreboard();
+        this.scoreboard = scoreboard;
     }
 
     public void playGame(int totalRounds) {

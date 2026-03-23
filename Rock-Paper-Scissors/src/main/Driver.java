@@ -24,7 +24,7 @@ public class Driver {
         Player computer = ComputerPlayerFactory.createComputerPlayer(selectedAlgo);
 
         IRules rules = new ClassicRules();
-        GameController game = new GameController(human, computer, rules);
+        GameController game = new GameController(human, computer, rules, new Scoreboard());
 
         System.out.println("\nStarting game against " + computer.getName() + "...");
         game.playGame(NumOFRounds);
