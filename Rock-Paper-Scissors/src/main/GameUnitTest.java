@@ -3,112 +3,224 @@ public class GameUnitTest {
     public static void main(String[] args) {
         boolean testFailed = false;
 
-        // --- TEST 1: Scoreboard Incrementation ---
-        int hScore = 0, cScore = 0, dScore = 0;
-        
-        // Simulate 1 Human Win (Result 1), 1 Comp Win (Result 2), 1 Draw (Result 0)
-        int[] simulatedResults = {1, 2, 0}; 
-        
-        for (int res : simulatedResults) {
-            if (res == 1) hScore++;
-            else if (res == 2) cScore++;
-            else if (res == 0) dScore++;
-        }
+        // ================================================================
+        // SCOREBOARD TESTS (testing the actual Scoreboard class)
+        // ================================================================
 
-        if (hScore != 1 || cScore != 1 || dScore != 1) {
-            System.err.println("ERROR: Scoreboard failed to increment correctly.");
-            System.err.println("Actual -> H:" + hScore + " C:" + cScore + " D:" + dScore);
-            testFailed = true;
-        }
-
-        // --- TEST 2: Round Count Verification ---
-        int roundCount = 0;
-        int targetRounds = 20;
-        for (int i = 1; i <= targetRounds; i++) {
-            roundCount++;
-        }
-
-        if (roundCount != 20) {
-            System.err.println("ERROR: Game loop ran " + roundCount + " times instead of 20.");
-            testFailed = true;
-        }
-
-        // --- TEST 3: Score Integrity (Sum Check) ---
-        // Total points + draws must always equal rounds played
-        if ((hScore + cScore + dScore) != simulatedResults.length) {
-            System.err.println("ERROR: Score sum does not match total rounds played.");
-            testFailed = true;
-        }
-
-        // Final status report (Only prints if there was a failure)
-        if (testFailed) {
-            System.err.println("\nUNIT TEST STATUS: FAILED");
-            System.exit(1); // Exit with error code
-        }
-        
-        // --- TEST 4: HumanPlayer Valid Input ---
-        // Simulate user typing "2" (Paper) into System.in
-        java.io.InputStream originalIn = System.in;
-        try {
-            String simulatedInput = "2\n";
-            System.setIn(new java.io.ByteArrayInputStream(simulatedInput.getBytes()));
-
-            HumanPlayer testHuman = new HumanPlayer();
-            int move = testHuman.getMove(1);
-
-            if (move != 2) {
-                System.err.println("ERROR: HumanPlayer returned " + move + " but expected 2 (Paper).");
+        // --- TEST 1: Scoreboard records a P1 win correctly ---
+        {
+            Scoreboard sb = new Scoreboard();
+            sb.recordResult(1);
+            if (sb.getP1Wins() != 1 || sb.getP2Wins() != 0 || sb.getDraws() != 0) {
+                System.err.println("TEST 1 FAILED: P1 win not recorded. State: "
+                    + sb.getP1Wins() + "/" + sb.getP2Wins() + "/" + sb.getDraws());
                 testFailed = true;
             }
-        } finally {
-            System.setIn(originalIn); // Always restore System.in
         }
 
-        // --- TEST 5: HumanPlayer Invalid Then Valid Input ---
-        // Simulate user typing "9" (invalid), then "1" (Rock)
-        originalIn = System.in;
-        try {
-            String simulatedInput = "9\n1\n";
-            System.setIn(new java.io.ByteArrayInputStream(simulatedInput.getBytes()));
-
-            HumanPlayer testHuman = new HumanPlayer();
-            int move = testHuman.getMove(1);
-
-            if (move != 1) {
-                System.err.println("ERROR: HumanPlayer should have re-prompted and returned 1 (Rock), got " + move);
+        // --- TEST 2: Scoreboard records a P2 win correctly ---
+        {
+            Scoreboard sb = new Scoreboard();
+            sb.recordResult(2);
+            if (sb.getP1Wins() != 0 || sb.getP2Wins() != 1 || sb.getDraws() != 0) {
+                System.err.println("TEST 2 FAILED: P2 win not recorded. State: "
+                    + sb.getP1Wins() + "/" + sb.getP2Wins() + "/" + sb.getDraws());
                 testFailed = true;
             }
-        } finally {
-            System.setIn(originalIn);
         }
 
-        // --- TEST 6: HumanPlayer Non-Numeric Then Valid Input ---
-        // Simulate user typing "abc" (bad), then "3" (Scissors)
-        originalIn = System.in;
-        try {
-            String simulatedInput = "abc\n3\n";
-            System.setIn(new java.io.ByteArrayInputStream(simulatedInput.getBytes()));
-
-            HumanPlayer testHuman = new HumanPlayer();
-            int move = testHuman.getMove(1);
-
-            if (move != 3) {
-                System.err.println("ERROR: HumanPlayer should have handled bad input and returned 3 (Scissors), got " + move);
+        // --- TEST 3: Scoreboard records a draw correctly ---
+        {
+            Scoreboard sb = new Scoreboard();
+            sb.recordResult(0);
+            if (sb.getP1Wins() != 0 || sb.getP2Wins() != 0 || sb.getDraws() != 1) {
+                System.err.println("TEST 3 FAILED: Draw not recorded. State: "
+                    + sb.getP1Wins() + "/" + sb.getP2Wins() + "/" + sb.getDraws());
                 testFailed = true;
             }
-        } finally {
-            System.setIn(originalIn);
         }
 
-         // Final status report
+        // --- TEST 4: Scoreboard sum integrity over multiple results ---
+        {
+            Scoreboard sb = new Scoreboard();
+            sb.recordResult(1);
+            sb.recordResult(2);
+            sb.recordResult(0);
+            sb.recordResult(1);
+            int total = sb.getP1Wins() + sb.getP2Wins() + sb.getDraws();
+            if (total != 4 || sb.getP1Wins() != 2 || sb.getP2Wins() != 1 || sb.getDraws() != 1) {
+                System.err.println("TEST 4 FAILED: Score integrity check failed. P1="
+                    + sb.getP1Wins() + " P2=" + sb.getP2Wins() + " D=" + sb.getDraws());
+                testFailed = true;
+            }
+        }
+
+        // ================================================================
+        // CLASSICRULES (GameLogic) TESTS — all 9 move combinations
+        // ================================================================
+        ClassicRules rules = new ClassicRules();
+
+        // --- TEST 5: Rock vs Rock = Draw ---
+        {
+            int result = rules.decideWinner(Move.ROCK, Move.ROCK);
+            if (result != 0) {
+                System.err.println("TEST 5 FAILED: Rock vs Rock should be Draw (0), got " + result);
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 6: Paper vs Paper = Draw ---
+        {
+            int result = rules.decideWinner(Move.PAPER, Move.PAPER);
+            if (result != 0) {
+                System.err.println("TEST 6 FAILED: Paper vs Paper should be Draw (0), got " + result);
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 7: Scissors vs Scissors = Draw ---
+        {
+            int result = rules.decideWinner(Move.SCISSORS, Move.SCISSORS);
+            if (result != 0) {
+                System.err.println("TEST 7 FAILED: Scissors vs Scissors should be Draw (0), got " + result);
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 8: Rock vs Scissors = P1 Win ---
+        {
+            int result = rules.decideWinner(Move.ROCK, Move.SCISSORS);
+            if (result != 1) {
+                System.err.println("TEST 8 FAILED: Rock vs Scissors should be P1 Win (1), got " + result);
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 9: Paper vs Rock = P1 Win ---
+        {
+            int result = rules.decideWinner(Move.PAPER, Move.ROCK);
+            if (result != 1) {
+                System.err.println("TEST 9 FAILED: Paper vs Rock should be P1 Win (1), got " + result);
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 10: Scissors vs Paper = P1 Win ---
+        {
+            int result = rules.decideWinner(Move.SCISSORS, Move.PAPER);
+            if (result != 1) {
+                System.err.println("TEST 10 FAILED: Scissors vs Paper should be P1 Win (1), got " + result);
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 11: Scissors vs Rock = P2 Win ---
+        {
+            int result = rules.decideWinner(Move.SCISSORS, Move.ROCK);
+            if (result != 2) {
+                System.err.println("TEST 11 FAILED: Scissors vs Rock should be P2 Win (2), got " + result);
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 12: Rock vs Paper = P2 Win ---
+        {
+            int result = rules.decideWinner(Move.ROCK, Move.PAPER);
+            if (result != 2) {
+                System.err.println("TEST 12 FAILED: Rock vs Paper should be P2 Win (2), got " + result);
+                testFailed = true;
+            }
+        }
+
+        // --- TEST 13: Paper vs Scissors = P2 Win ---
+        {
+            int result = rules.decideWinner(Move.PAPER, Move.SCISSORS);
+            if (result != 2) {
+                System.err.println("TEST 13 FAILED: Paper vs Scissors should be P2 Win (2), got " + result);
+                testFailed = true;
+            }
+        }
+
+        // ================================================================
+        // RANDOMCOMPUTERPLAYER TESTS
+        // ================================================================
+
+        // --- TEST 14: RandomComputerPlayer always returns a valid Move ---
+        {
+            RandomComputerPlayer cpu = new RandomComputerPlayer();
+            boolean allValid = true;
+            for (int i = 0; i < 100; i++) {
+                Move m = cpu.getMove();
+                if (m != Move.ROCK && m != Move.PAPER && m != Move.SCISSORS) {
+                    allValid = false;
+                    break;
+                }
+            }
+            if (!allValid) {
+                System.err.println("TEST 14 FAILED: RandomComputerPlayer returned an invalid Move.");
+                testFailed = true;
+            }
+        }
+
+        // ================================================================
+        // HUMANPLAYER TESTS (using ByteArrayInputStream to simulate input)
+        // ================================================================
+
+        // --- TEST 15: HumanPlayer valid input "2" returns PAPER ---
+        {
+            java.io.InputStream originalIn = System.in;
+            try {
+                System.setIn(new java.io.ByteArrayInputStream("2\n".getBytes()));
+                HumanPlayer human = new HumanPlayer("Tester", new java.util.Scanner(System.in));
+                Move move = human.getMove();
+                if (move != Move.PAPER) {
+                    System.err.println("TEST 15 FAILED: Expected PAPER, got " + move);
+                    testFailed = true;
+                }
+            } finally {
+                System.setIn(originalIn);
+            }
+        }
+
+        // --- TEST 16: HumanPlayer out-of-range then valid "9\n1\n" returns ROCK ---
+        {
+            java.io.InputStream originalIn = System.in;
+            try {
+                System.setIn(new java.io.ByteArrayInputStream("9\n1\n".getBytes()));
+                HumanPlayer human = new HumanPlayer("Tester", new java.util.Scanner(System.in));
+                Move move = human.getMove();
+                if (move != Move.ROCK) {
+                    System.err.println("TEST 16 FAILED: Expected ROCK after re-prompt, got " + move);
+                    testFailed = true;
+                }
+            } finally {
+                System.setIn(originalIn);
+            }
+        }
+
+        // --- TEST 17: HumanPlayer non-numeric then valid "abc\n3\n" returns SCISSORS ---
+        {
+            java.io.InputStream originalIn = System.in;
+            try {
+                System.setIn(new java.io.ByteArrayInputStream("abc\n3\n".getBytes()));
+                HumanPlayer human = new HumanPlayer("Tester", new java.util.Scanner(System.in));
+                Move move = human.getMove();
+                if (move != Move.SCISSORS) {
+                    System.err.println("TEST 17 FAILED: Expected SCISSORS after bad input, got " + move);
+                    testFailed = true;
+                }
+            } finally {
+                System.setIn(originalIn);
+            }
+        }
+
+        // ================================================================
+        // FINAL REPORT
+        // ================================================================
         if (testFailed) {
             System.err.println("\nUNIT TEST STATUS: FAILED");
             System.exit(1);
         }
-
-        // Note: If code reaches here with no output, the test passed.
-
-        // Add test for the other classes!
+        // Reaching here with no output means all 17 tests passed.
     }
 }
-    

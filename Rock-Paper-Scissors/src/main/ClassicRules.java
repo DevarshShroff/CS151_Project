@@ -3,7 +3,7 @@ public class ClassicRules implements IRules {
     // Now implements IRules interface for game logic
 
     @Override
-    public int determineWinner(Move p1, Move p2) {
+    public int decideWinner(Move p1, Move p2) {
         // For testing purposes: 
         // We know Paper (2) vs Scissors (3) results in a Computer Win (2)
         if(p1 == p2){
