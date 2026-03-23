@@ -1,21 +1,29 @@
 import java.util.Random;
 
-public class RandomComputerPlayer implements Player {
+public class RandomComputerPlayer implements ComputerChoiceAlgorithm {
     private final Random random = new Random();
-    
+
     @Override
     public Move getMove() {
-        // Logic for replacing ComputerPlayer
         int val = random.nextInt(3);
+
         switch (val) {
-            case 0: return Move.ROCK;
-            case 1: return Move.PAPER;
-            default: return Move.SCISSORS;
+            case 0:
+                return Move.ROCK;
+            case 1:
+                return Move.PAPER;
+            default:
+                return Move.SCISSORS;
         }
     }
-    
-    @Override 
-    public String getName() { 
-        return "Computer (Random)"; 
+
+    @Override
+    public void updateHistory(Move myMove, Move opponentMove) {
+        // Random player does not use history.
+    }
+
+    @Override
+    public void saveData() {
+        // Random player has nothing to persist.
     }
 }
