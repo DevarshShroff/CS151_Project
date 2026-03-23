@@ -1,114 +1,113 @@
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Scanner;
+
 public class GameUnitTest {
 
     public static void main(String[] args) {
-        boolean testFailed = false;
-
         // --- TEST 1: Scoreboard Incrementation ---
-        int hScore = 0, cScore = 0, dScore = 0;
-        
-        // Simulate 1 Human Win (Result 1), 1 Comp Win (Result 2), 1 Draw (Result 0)
-        int[] simulatedResults = {1, 2, 0}; 
-        
-        for (int res : simulatedResults) {
-            if (res == 1) hScore++;
-            else if (res == 2) cScore++;
-            else if (res == 0) dScore++;
-        }
-
-        if (hScore != 1 || cScore != 1 || dScore != 1) {
-            System.err.println("ERROR: Scoreboard failed to increment correctly.");
-            System.err.println("Actual -> H:" + hScore + " C:" + cScore + " D:" + dScore);
-            testFailed = true;
-        }
+        testScoreboardIncrementation();
 
         // --- TEST 2: Round Count Verification ---
+        testRoundCountVerification();
+
+        // --- TEST 3: Score Integrity ---
+        testScoreIntegrity();
+
+        // --- TEST 4: HumanPlayer Valid Input ---
+        testHumanPlayerValidInput();
+
+        // --- TEST 5: HumanPlayer Invalid Then Valid Input ---
+        testHumanPlayerInvalidThenValidInput();
+
+        // --- TEST 6: HumanPlayer Non-Numeric Then Valid Input ---
+        testHumanPlayerNonNumericThenValidInput();
+
+        // Silently exits if all tests pass
+    }
+
+    private static void testScoreboardIncrementation() {
+        Scoreboard scoreboard = new Scoreboard();
+
+        scoreboard.recordResult(1); // P1 win
+        scoreboard.recordResult(2); // P2 win
+        scoreboard.recordResult(0); // draw
+
+        assert scoreboard.getP1Wins() == 1 : "P1 wins should be 1";
+        assert scoreboard.getP2Wins() == 1 : "P2 wins should be 1";
+        assert scoreboard.getDraws() == 1 : "Draws should be 1";
+    }
+
+    private static void testRoundCountVerification() {
         int roundCount = 0;
         int targetRounds = 20;
+
         for (int i = 1; i <= targetRounds; i++) {
             roundCount++;
         }
 
-        if (roundCount != 20) {
-            System.err.println("ERROR: Game loop ran " + roundCount + " times instead of 20.");
-            testFailed = true;
-        }
+        assert roundCount == 20 : "Game loop should run 20 times";
+    }
 
-        // --- TEST 3: Score Integrity (Sum Check) ---
-        // Total points + draws must always equal rounds played
-        if ((hScore + cScore + dScore) != simulatedResults.length) {
-            System.err.println("ERROR: Score sum does not match total rounds played.");
-            testFailed = true;
-        }
+    private static void testScoreIntegrity() {
+        Scoreboard scoreboard = new Scoreboard();
 
-        // Final status report (Only prints if there was a failure)
-        if (testFailed) {
-            System.err.println("\nUNIT TEST STATUS: FAILED");
-            System.exit(1); // Exit with error code
-        }
-        
-        // --- TEST 4: HumanPlayer Valid Input ---
-        // Simulate user typing "2" (Paper) into System.in
-        java.io.InputStream originalIn = System.in;
+        scoreboard.recordResult(1);
+        scoreboard.recordResult(2);
+        scoreboard.recordResult(0);
+
+        int total = scoreboard.getP1Wins() + scoreboard.getP2Wins() + scoreboard.getDraws();
+        assert total == 3 : "Total results should equal total rounds played";
+    }
+
+    private static void testHumanPlayerValidInput() {
+        InputStream originalIn = System.in;
+
         try {
             String simulatedInput = "2\n";
-            System.setIn(new java.io.ByteArrayInputStream(simulatedInput.getBytes()));
+            System.setIn(new ByteArrayInputStream(simulatedInput.getBytes()));
 
-            HumanPlayer testHuman = new HumanPlayer();
-            int move = testHuman.getMove(1);
+            Scanner scanner = new Scanner(System.in);
+            HumanPlayer testHuman = new HumanPlayer("Tester", scanner);
+            Move move = testHuman.getMove();
 
-            if (move != 2) {
-                System.err.println("ERROR: HumanPlayer returned " + move + " but expected 2 (Paper).");
-                testFailed = true;
-            }
+            assert move == Move.PAPER : "Expected PAPER for input 2";
         } finally {
-            System.setIn(originalIn); // Always restore System.in
+            System.setIn(originalIn);
         }
+    }
 
-        // --- TEST 5: HumanPlayer Invalid Then Valid Input ---
-        // Simulate user typing "9" (invalid), then "1" (Rock)
-        originalIn = System.in;
+    private static void testHumanPlayerInvalidThenValidInput() {
+        InputStream originalIn = System.in;
+
         try {
             String simulatedInput = "9\n1\n";
-            System.setIn(new java.io.ByteArrayInputStream(simulatedInput.getBytes()));
+            System.setIn(new ByteArrayInputStream(simulatedInput.getBytes()));
 
-            HumanPlayer testHuman = new HumanPlayer();
-            int move = testHuman.getMove(1);
+            Scanner scanner = new Scanner(System.in);
+            HumanPlayer testHuman = new HumanPlayer("Tester", scanner);
+            Move move = testHuman.getMove();
 
-            if (move != 1) {
-                System.err.println("ERROR: HumanPlayer should have re-prompted and returned 1 (Rock), got " + move);
-                testFailed = true;
-            }
+            assert move == Move.ROCK : "Expected ROCK after invalid input then 1";
         } finally {
             System.setIn(originalIn);
         }
+    }
 
-        // --- TEST 6: HumanPlayer Non-Numeric Then Valid Input ---
-        // Simulate user typing "abc" (bad), then "3" (Scissors)
-        originalIn = System.in;
+    private static void testHumanPlayerNonNumericThenValidInput() {
+        InputStream originalIn = System.in;
+
         try {
             String simulatedInput = "abc\n3\n";
-            System.setIn(new java.io.ByteArrayInputStream(simulatedInput.getBytes()));
+            System.setIn(new ByteArrayInputStream(simulatedInput.getBytes()));
 
-            HumanPlayer testHuman = new HumanPlayer();
-            int move = testHuman.getMove(1);
+            Scanner scanner = new Scanner(System.in);
+            HumanPlayer testHuman = new HumanPlayer("Tester", scanner);
+            Move move = testHuman.getMove();
 
-            if (move != 3) {
-                System.err.println("ERROR: HumanPlayer should have handled bad input and returned 3 (Scissors), got " + move);
-                testFailed = true;
-            }
+            assert move == Move.SCISSORS : "Expected SCISSORS after non-numeric input then 3";
         } finally {
             System.setIn(originalIn);
         }
-
-         // Final status report
-        if (testFailed) {
-            System.err.println("\nUNIT TEST STATUS: FAILED");
-            System.exit(1);
-        }
-
-        // Note: If code reaches here with no output, the test passed.
-
-        // Add test for the other classes!
     }
 }
-    
