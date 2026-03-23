@@ -4,70 +4,53 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-public class MLComputerPlayer implements Player {
-    private static final int N = 5; // size of sequence
-    private static final String DATA_FILE = "ml_frequency_data.txt"; // file to save data
+public class MLComputerPlayer implements ComputerChoiceAlgorithm {
+    private static final int N = 5;
+    private static final String DATA_FILE = "ml_frequency_data.txt";
 
     private final Random random;
-    private final List<Move> recentChoices; // last N moves
-    private final Map<String, Integer> sequenceCounts; // sequence -> frequency
-
-    private Move currentComputerMove;
+    private final List<Move> recentChoices;
+    private final Map<String, Integer> sequenceCounts;
 
     public MLComputerPlayer() {
         random = new Random();
         recentChoices = new ArrayList<>();
         sequenceCounts = new HashMap<>();
-        currentComputerMove = null;
-        loadFrequencyData(); // load past data
+        loadFrequencyData();
     }
 
     @Override
     public Move getMove() {
-        Move chosenMove;
-
-        // if not enough data, use random
         if (recentChoices.size() < N - 1) {
-            chosenMove = getRandomMove();
-        } else {
-            chosenMove = getMachineLearningMove(); // use ML
+            return getRandomMove();
         }
 
-        currentComputerMove = chosenMove;
-
-        recentChoices.add(chosenMove); // add computer move
-        trimHistory(); // keep size N
-
-        return chosenMove;
+        return getMachineLearningMove();
     }
 
     @Override
-    public String getName() {
-        return "CPU (Machine Learning)";
+    public void updateHistory(Move myMove, Move opponentMove) {
+        // Record moves in the actual round order: human first, computer second.
+        // Store frequencies only for windows that end on the human's choice,
+        // which is the next event we want to predict.
+        appendChoice(opponentMove);
+        recordCurrentSequence();
+        appendChoice(myMove);
     }
 
     @Override
-    public void updateHistory(Move opponentMove) {
-        recentChoices.add(opponentMove); // add human move
-        trimHistory();
-
-        // if we have full sequence, update count
-        if (recentChoices.size() == N) {
-            String sequence = convertSequenceToString(recentChoices);
-            int oldCount = sequenceCounts.getOrDefault(sequence, 0);
-            sequenceCounts.put(sequence, oldCount + 1);
-        }
-    }
-
     public void saveData() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(DATA_FILE))) {
-            // write all sequences to file
+        File file = resolveDataFile();
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             for (Map.Entry<String, Integer> entry : sequenceCounts.entrySet()) {
                 writer.write(entry.getKey() + ":" + entry.getValue());
                 writer.newLine();
@@ -78,10 +61,10 @@ public class MLComputerPlayer implements Player {
     }
 
     private void loadFrequencyData() {
-        File file = new File(DATA_FILE);
+        File file = resolveDataFile();
 
         if (!file.exists()) {
-            return; // no file yet
+            return;
         }
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
@@ -93,7 +76,7 @@ public class MLComputerPlayer implements Player {
                 if (parts.length == 2) {
                     String sequence = parts[0].trim();
                     int count = Integer.parseInt(parts[1].trim());
-                    sequenceCounts.put(sequence, count); // load into map
+                    sequenceCounts.put(sequence, count);
                 }
             }
         } catch (IOException | NumberFormatException e) {
@@ -102,23 +85,20 @@ public class MLComputerPlayer implements Player {
     }
 
     private Move getMachineLearningMove() {
-        String prefix = getLastNMinusOneChoices(); // last N-1 moves
+        String prefix = getLastNMinusOneChoices();
 
-        // check frequencies
         int rockCount = sequenceCounts.getOrDefault(prefix + "R", 0);
         int paperCount = sequenceCounts.getOrDefault(prefix + "P", 0);
         int scissorsCount = sequenceCounts.getOrDefault(prefix + "S", 0);
 
         int maxCount = Math.max(rockCount, Math.max(paperCount, scissorsCount));
 
-        // if no data, random
         if (maxCount == 0) {
             return getRandomMove();
         }
 
         Move predictedHumanMove;
 
-        // predict most frequent move
         if (rockCount >= paperCount && rockCount >= scissorsCount) {
             predictedHumanMove = Move.ROCK;
         } else if (paperCount >= rockCount && paperCount >= scissorsCount) {
@@ -127,14 +107,13 @@ public class MLComputerPlayer implements Player {
             predictedHumanMove = Move.SCISSORS;
         }
 
-        return getCounterMove(predictedHumanMove); // beat it
+        return getCounterMove(predictedHumanMove);
     }
 
     private String getLastNMinusOneChoices() {
         StringBuilder builder = new StringBuilder();
         int start = recentChoices.size() - (N - 1);
 
-        // build prefix string
         for (int i = start; i < recentChoices.size(); i++) {
             builder.append(moveToLetter(recentChoices.get(i)));
         }
@@ -142,17 +121,46 @@ public class MLComputerPlayer implements Player {
         return builder.toString();
     }
 
+    private void appendChoice(Move move) {
+        recentChoices.add(move);
+        trimHistory();
+    }
+
+    private void recordCurrentSequence() {
+        if (recentChoices.size() == N) {
+            String sequence = convertSequenceToString(recentChoices);
+            sequenceCounts.put(sequence, sequenceCounts.getOrDefault(sequence, 0) + 1);
+        }
+    }
+
     private void trimHistory() {
-        // keep only last N moves
         while (recentChoices.size() > N) {
             recentChoices.remove(0);
         }
     }
 
+    private File resolveDataFile() {
+        Path projectDataFile = Paths.get("src", "main", DATA_FILE);
+        Path localDataFile = Paths.get(DATA_FILE);
+
+        if (projectDataFile.toFile().exists()) {
+            return projectDataFile.toFile();
+        }
+
+        if (localDataFile.toFile().exists()) {
+            return localDataFile.toFile();
+        }
+
+        if (projectDataFile.getParent().toFile().exists()) {
+            return projectDataFile.toFile();
+        }
+
+        return localDataFile.toFile();
+    }
+
     private Move getRandomMove() {
         int value = random.nextInt(3);
 
-        // random choice
         if (value == 0) {
             return Move.ROCK;
         } else if (value == 1) {
@@ -163,7 +171,6 @@ public class MLComputerPlayer implements Player {
     }
 
     private Move getCounterMove(Move predictedHumanMove) {
-        // return move that beats human
         if (predictedHumanMove == Move.ROCK) {
             return Move.PAPER;
         } else if (predictedHumanMove == Move.PAPER) {
@@ -174,7 +181,6 @@ public class MLComputerPlayer implements Player {
     }
 
     private char moveToLetter(Move move) {
-        // convert move to char
         if (move == Move.ROCK) {
             return 'R';
         } else if (move == Move.PAPER) {
@@ -187,7 +193,6 @@ public class MLComputerPlayer implements Player {
     private String convertSequenceToString(List<Move> sequence) {
         StringBuilder builder = new StringBuilder();
 
-        // convert list to string
         for (Move move : sequence) {
             builder.append(moveToLetter(move));
         }
