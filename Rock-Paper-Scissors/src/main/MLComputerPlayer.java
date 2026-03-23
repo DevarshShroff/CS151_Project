@@ -3,18 +3,11 @@ import java.io.*;
 
 public class MLComputerPlayer implements Player {
 
-    // N = window size (last N moves form a sequence)
     private static final int N = 5;
     private static final String DATA_FILE = "ml_frequencies.dat";
 
-    // Key: sequence string like "ROCK,PAPER,SCISSORS,ROCK,PAPER"
-    // Value: int[3] -> counts for predicted next human move: [ROCK, PAPER, SCISSORS]
     private final Map<String, int[]> frequencies;
-
-    // Circular buffer of the last N moves (alternating: human, computer, human, ...)
-    // We track both players' moves in order, as described in the assignment
     private final Deque<Move> history;
-
     private final Random random;
 
     public MLComputerPlayer() {
@@ -34,29 +27,11 @@ public class MLComputerPlayer implements Player {
         // Build key from last N-1 moves (the prefix before the human's next move)
         String prefix = buildKey(history);
 
-        // Look for all stored sequences that start with this prefix
-        Move bestPrediction = null;
-        int bestCount = -1;
-
-        // Check each possible next human move
-        for (Move humanPredicted : Move.values()) {
-            String fullKey = prefix + "," + humanPredicted.name();
-            int[] counts = frequencies.get(fullKey);
-            if (counts != null) {
-                int total = counts[0] + counts[1] + counts[2];
-                if (total > bestCount) {
-                    bestCount = total;
-                    // Find which next human move is most predicted by this sequence
-                    bestPrediction = humanPredicted;
-                }
-            }
-        }
-
-        // Find the most likely human move directly
+        // Predict what the human is most likely to play next
         Move predictedHumanMove = predictHumanMove(prefix);
 
         if (predictedHumanMove == null) {
-            // No data yet — pick randomly
+            // No data for this sequence yet — pick randomly
             return randomMove();
         }
 
@@ -65,7 +40,8 @@ public class MLComputerPlayer implements Player {
     }
 
     /**
-     * Predict what the human will most likely play next, given the current history prefix.
+     * Finds the most frequently observed human move following the given prefix.
+     * Returns null if the prefix has never been seen before.
      */
     private Move predictHumanMove(String prefix) {
         int bestCount = 0;
@@ -74,22 +50,15 @@ public class MLComputerPlayer implements Player {
         for (Move candidate : Move.values()) {
             String fullKey = prefix + "," + candidate.name();
             int[] counts = frequencies.get(fullKey);
-            if (counts != null) {
-                // counts[i] stores how many times THIS full sequence occurred
-                // We stored a single frequency count under index 0
-                int freq = counts[0];
-                if (freq > bestCount) {
-                    bestCount = freq;
-                    bestMove = candidate;
-                }
+            if (counts != null && counts[0] > bestCount) {
+                bestCount = counts[0];
+                bestMove = candidate;
             }
         }
-        return bestMove; // null if no data found
+        return bestMove;
     }
 
-    /**
-     * Returns the move that beats the given move.
-     */
+    /** Returns the move that beats the given move. */
     private Move beats(Move m) {
         switch (m) {
             case ROCK:     return Move.PAPER;
@@ -100,12 +69,11 @@ public class MLComputerPlayer implements Player {
     }
 
     /**
-     * Called by GameController after each round with the opponent's (human's) last move.
-     * We record both moves into the history buffer and update frequencies.
+     * Called by GameController after each round with the human's last move.
+     * Adds it to the sliding window and updates frequencies.
      */
     @Override
     public void updateHistory(Move opponentMove) {
-        // Add the human's move to our sliding window
         history.addLast(opponentMove);
 
         // Keep window at size N
@@ -113,15 +81,14 @@ public class MLComputerPlayer implements Player {
             history.removeFirst();
         }
 
-        // Once we have a full window, record the full sequence
+        // Once we have a full window, record the sequence
         if (history.size() == N) {
-            // The key is the first N-1 moves; the Nth move is what we're predicting
             List<Move> moveList = new ArrayList<>(history);
             String prefix = buildKeyFromList(moveList.subList(0, N - 1));
             Move lastMove = moveList.get(N - 1);
             String fullKey = prefix + "," + lastMove.name();
 
-            // Increment frequency count
+            // Each entry is a single int[1] frequency counter
             int[] counts = frequencies.computeIfAbsent(fullKey, k -> new int[]{0});
             counts[0]++;
         }
@@ -130,7 +97,6 @@ public class MLComputerPlayer implements Player {
     }
 
     private String buildKey(Deque<Move> deque) {
-        // Take first N-1 elements as the prefix
         List<Move> list = new ArrayList<>(deque);
         int end = Math.min(N - 1, list.size());
         return buildKeyFromList(list.subList(0, end));
@@ -149,8 +115,6 @@ public class MLComputerPlayer implements Player {
         Move[] moves = Move.values();
         return moves[random.nextInt(moves.length)];
     }
-
-    // --- Persistence: save and load frequency map to/from file ---
 
     private void saveFrequencies() {
         try (PrintWriter pw = new PrintWriter(new FileWriter(DATA_FILE))) {
