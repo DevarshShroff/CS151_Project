@@ -194,7 +194,7 @@ public class GameView {
 
     private void handleAbout() {
         showAlert(Alert.AlertType.INFORMATION, "About Rock Paper Scissors",
-                "CS 151 — Object-Oriented Analysis and Design\n" +
+                "CS 151 Object-Oriented Analysis and Design\n" +
                         "Assignment #5: GUI-Based RPS Game\n\n" +
                         "The computer uses machine learning to predict\n" +
                         "your moves and counter them.\n\n" +
