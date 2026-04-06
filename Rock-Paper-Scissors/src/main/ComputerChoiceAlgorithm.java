@@ -8,9 +8,7 @@ public interface ComputerChoiceAlgorithm {
     default void saveData() {
         // most algorithms have nothing to save
     }
-
-    // returns what the ML model predicted the human would play
-    // returns null for random since there's no prediction
+    
     default Move getLastPrediction() {
         return null;
     }
