@@ -20,6 +20,9 @@ public class MLComputerPlayer implements ComputerChoiceAlgorithm {
     private final List<Move> recentChoices;
     private final Map<String, Integer> sequenceCounts;
 
+    // what we predicted the human would play last round (null if we guessed randomly)
+    private Move lastPrediction = null;
+
     public MLComputerPlayer() {
         random = new Random();
         recentChoices = new ArrayList<>();
@@ -30,17 +33,20 @@ public class MLComputerPlayer implements ComputerChoiceAlgorithm {
     @Override
     public Move getMove() {
         if (recentChoices.size() < N - 1) {
+            lastPrediction = null;
             return getRandomMove();
         }
-
         return getMachineLearningMove();
     }
 
     @Override
+    public Move getLastPrediction() {
+        return lastPrediction;
+    }
+
+    @Override
     public void updateHistory(Move myMove, Move opponentMove) {
-        // Record moves in the actual round order: human first, computer second.
-        // Store frequencies only for windows that end on the human's choice,
-        // which is the next event we want to predict.
+        // add human's move first so we can predict it next time
         appendChoice(opponentMove);
         recordCurrentSequence();
         appendChoice(myMove);
@@ -87,13 +93,14 @@ public class MLComputerPlayer implements ComputerChoiceAlgorithm {
     private Move getMachineLearningMove() {
         String prefix = getLastNMinusOneChoices();
 
-        int rockCount = sequenceCounts.getOrDefault(prefix + "R", 0);
-        int paperCount = sequenceCounts.getOrDefault(prefix + "P", 0);
+        int rockCount     = sequenceCounts.getOrDefault(prefix + "R", 0);
+        int paperCount    = sequenceCounts.getOrDefault(prefix + "P", 0);
         int scissorsCount = sequenceCounts.getOrDefault(prefix + "S", 0);
 
         int maxCount = Math.max(rockCount, Math.max(paperCount, scissorsCount));
 
         if (maxCount == 0) {
+            lastPrediction = null;
             return getRandomMove();
         }
 
@@ -107,6 +114,7 @@ public class MLComputerPlayer implements ComputerChoiceAlgorithm {
             predictedHumanMove = Move.SCISSORS;
         }
 
+        lastPrediction = predictedHumanMove;
         return getCounterMove(predictedHumanMove);
     }
 
@@ -141,62 +149,39 @@ public class MLComputerPlayer implements ComputerChoiceAlgorithm {
 
     private File resolveDataFile() {
         Path projectDataFile = Paths.get("src", "main", DATA_FILE);
-        Path localDataFile = Paths.get(DATA_FILE);
+        Path localDataFile   = Paths.get(DATA_FILE);
 
-        if (projectDataFile.toFile().exists()) {
-            return projectDataFile.toFile();
-        }
-
-        if (localDataFile.toFile().exists()) {
-            return localDataFile.toFile();
-        }
-
-        if (projectDataFile.getParent().toFile().exists()) {
-            return projectDataFile.toFile();
-        }
+        if (projectDataFile.toFile().exists()) return projectDataFile.toFile();
+        if (localDataFile.toFile().exists())   return localDataFile.toFile();
+        if (projectDataFile.getParent().toFile().exists()) return projectDataFile.toFile();
 
         return localDataFile.toFile();
     }
 
     private Move getRandomMove() {
         int value = random.nextInt(3);
-
-        if (value == 0) {
-            return Move.ROCK;
-        } else if (value == 1) {
-            return Move.PAPER;
-        } else {
-            return Move.SCISSORS;
-        }
+        if (value == 0)      return Move.ROCK;
+        else if (value == 1) return Move.PAPER;
+        else                 return Move.SCISSORS;
     }
 
     private Move getCounterMove(Move predictedHumanMove) {
-        if (predictedHumanMove == Move.ROCK) {
-            return Move.PAPER;
-        } else if (predictedHumanMove == Move.PAPER) {
-            return Move.SCISSORS;
-        } else {
-            return Move.ROCK;
-        }
+        if (predictedHumanMove == Move.ROCK)  return Move.PAPER;
+        if (predictedHumanMove == Move.PAPER) return Move.SCISSORS;
+        else                                   return Move.ROCK;
     }
 
     private char moveToLetter(Move move) {
-        if (move == Move.ROCK) {
-            return 'R';
-        } else if (move == Move.PAPER) {
-            return 'P';
-        } else {
-            return 'S';
-        }
+        if (move == Move.ROCK)  return 'R';
+        if (move == Move.PAPER) return 'P';
+        else                    return 'S';
     }
 
     private String convertSequenceToString(List<Move> sequence) {
         StringBuilder builder = new StringBuilder();
-
         for (Move move : sequence) {
             builder.append(moveToLetter(move));
         }
-
         return builder.toString();
     }
 }
