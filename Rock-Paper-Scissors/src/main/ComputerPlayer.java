@@ -26,4 +26,9 @@ public class ComputerPlayer implements Player {
     public void saveData() {
         algorithm.saveData();
     }
+
+    // used by the GUI to show what the ML model predicted
+    public Move getLastPrediction() {
+        return algorithm.getLastPrediction();
+    }
 }
