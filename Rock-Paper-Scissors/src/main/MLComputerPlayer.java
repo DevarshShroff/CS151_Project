@@ -13,12 +13,14 @@ import java.util.Map;
 import java.util.Random;
 
 public class MLComputerPlayer implements ComputerChoiceAlgorithm {
-    private static final int N = 5;
+    private static final int N = 6;
     private static final String DATA_FILE = "ml_frequency_data.txt";
 
     private final Random random;
     private final List<Move> recentChoices;
     private final Map<String, Integer> sequenceCounts;
+
+    private final MLFrequencyDataStore dataStore;
 
     // what we predicted the human would play last round (null if we guessed randomly)
     private Move lastPrediction = null;
@@ -26,8 +28,8 @@ public class MLComputerPlayer implements ComputerChoiceAlgorithm {
     public MLComputerPlayer() {
         random = new Random();
         recentChoices = new ArrayList<>();
-        sequenceCounts = new HashMap<>();
-        loadFrequencyData();
+        dataStore = new MLFrequencyDataStore(DATA_FILE);
+        sequenceCounts = dataStore.load()
     }
 
     @Override
@@ -47,47 +49,17 @@ public class MLComputerPlayer implements ComputerChoiceAlgorithm {
     @Override
     public void updateHistory(Move myMove, Move opponentMove) {
         // add human's move first so we can predict it next time
-        appendChoice(opponentMove);
+        Move humanMove = opponentMove;
+        Move computerMove = myMove;
+        
+        appendChoice(humanMove);
+        appendChoice(computerMove);
         recordCurrentSequence();
-        appendChoice(myMove);
     }
 
     @Override
     public void saveData() {
-        File file = resolveDataFile();
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-            for (Map.Entry<String, Integer> entry : sequenceCounts.entrySet()) {
-                writer.write(entry.getKey() + ":" + entry.getValue());
-                writer.newLine();
-            }
-        } catch (IOException e) {
-            System.out.println("Could not save ML data.");
-        }
-    }
-
-    private void loadFrequencyData() {
-        File file = resolveDataFile();
-
-        if (!file.exists()) {
-            return;
-        }
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String line;
-
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(":");
-
-                if (parts.length == 2) {
-                    String sequence = parts[0].trim();
-                    int count = Integer.parseInt(parts[1].trim());
-                    sequenceCounts.put(sequence, count);
-                }
-            }
-        } catch (IOException | NumberFormatException e) {
-            System.out.println("Could not load ML data.");
-        }
+        dataStore.save(sequenceCounts);
     }
 
     private Move getMachineLearningMove() {
@@ -145,17 +117,6 @@ public class MLComputerPlayer implements ComputerChoiceAlgorithm {
         while (recentChoices.size() > N) {
             recentChoices.remove(0);
         }
-    }
-
-    private File resolveDataFile() {
-        Path projectDataFile = Paths.get("src", "main", DATA_FILE);
-        Path localDataFile   = Paths.get(DATA_FILE);
-
-        if (projectDataFile.toFile().exists()) return projectDataFile.toFile();
-        if (localDataFile.toFile().exists())   return localDataFile.toFile();
-        if (projectDataFile.getParent().toFile().exists()) return projectDataFile.toFile();
-
-        return localDataFile.toFile();
     }
 
     private Move getRandomMove() {
