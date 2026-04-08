@@ -29,7 +29,7 @@ public class MLComputerPlayer implements ComputerChoiceAlgorithm {
         random = new Random();
         recentChoices = new ArrayList<>();
         dataStore = new MLFrequencyDataStore(DATA_FILE);
-        sequenceCounts = dataStore.load()
+        sequenceCounts = dataStore.load();
     }
 
     @Override
